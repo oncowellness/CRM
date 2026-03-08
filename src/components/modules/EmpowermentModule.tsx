@@ -80,18 +80,6 @@ export function EmpowermentModule({ patient: propPatient }: Props) {
             Reglas de Contenido para {patient.currentPhase} – {PHASE_LABELS[patient.currentPhase]}
           </h3>
         </div>
-        <div className="bg-slate-50 rounded-lg p-3 font-mono text-xs text-slate-600 mb-4">
-          <p className="text-slate-400 mb-1">// Motor de reglas</p>
-          <p>
-            if (paciente.fase === <span className="text-teal-600">"{patient.currentPhase}"</span>) {'{'}<br />
-            &nbsp;&nbsp;contenido = [
-            {recommendedCodes.map((c, i) => (
-              <span key={c}><span className="text-orange-500">"{c}"</span>{i < recommendedCodes.length - 1 ? ', ' : ''}</span>
-            ))}
-            ]<br />
-            {'}'}
-          </p>
-        </div>
 
         <div className="space-y-3">
           {recommendedItems.map(item => {

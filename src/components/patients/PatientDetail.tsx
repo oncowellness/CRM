@@ -1,9 +1,21 @@
-import { AlertTriangle, CheckCircle, AlertCircle, Calendar, Phone, Mail, Stethoscope, FileText, Package } from 'lucide-react'
+import { useState } from 'react'
+import { AlertTriangle, CheckCircle, AlertCircle, Calendar, Phone, Mail, Stethoscope, FileText, Package, Pencil, X, Save } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { JourneyTimeline } from './JourneyTimeline'
 import { formatDate, cn } from '../../lib/utils'
 import { PROGRAMS } from '../../data/programs'
-import type { AlertStatus } from '../../types'
+import { PHASE_LABELS, type AlertStatus, type Phase, type MindState, type Patient } from '../../types'
+
+type PatientDraft = Pick<Patient, 'name' | 'age' | 'gender' | 'email' | 'phone' | 'diagnosis' | 'cancerType' | 'stage' | 'oncologist' | 'diagnosisDate' | 'currentPhase' | 'mindState'>
+
+const CANCER_TYPES = [
+  'Mama', 'Pulmón', 'Colon/Recto', 'Próstata', 'Linfoma', 'Leucemia',
+  'Melanoma', 'Riñón', 'Vejiga', 'Ovario', 'Útero', 'Páncreas', 'Hígado', 'Otro',
+]
+const MIND_STATES: MindState[] = ['Activo', 'Ansioso', 'Depresivo', 'Resiliente', 'Vulnerable']
+const PHASES = Object.keys(PHASE_LABELS) as Phase[]
+
+const iCls = 'w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400'
 
 const ALERT_CONFIG: Record<AlertStatus, { label: string; icon: React.ReactNode; classes: string; border: string }> = {
   verde: {
@@ -27,9 +39,35 @@ const ALERT_CONFIG: Record<AlertStatus, { label: string; icon: React.ReactNode; 
 }
 
 export function PatientDetail() {
-  const { selectedPatientId, patients, acknowledgeCrisis } = useStore()
+  const { selectedPatientId, patients, acknowledgeCrisis, updatePatient } = useStore()
   const patient = patients.find(p => p.id === selectedPatientId)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState<PatientDraft>({} as PatientDraft)
+
   if (!patient) return null
+
+  function startEdit() {
+    setDraft({
+      name: patient!.name,
+      age: patient!.age,
+      gender: patient!.gender,
+      email: patient!.email,
+      phone: patient!.phone,
+      diagnosis: patient!.diagnosis,
+      cancerType: patient!.cancerType,
+      stage: patient!.stage,
+      oncologist: patient!.oncologist,
+      diagnosisDate: patient!.diagnosisDate,
+      currentPhase: patient!.currentPhase,
+      mindState: patient!.mindState,
+    })
+    setEditing(true)
+  }
+
+  function saveEdit() {
+    updatePatient(patient!.id, draft)
+    setEditing(false)
+  }
 
   const alert = ALERT_CONFIG[patient.alertStatus]
   const assignedProgramDetails = PROGRAMS.filter(pr => patient.assignedPrograms.includes(pr.code))
@@ -72,46 +110,136 @@ export function PatientDetail() {
       <div className={cn('bg-white rounded-xl border p-5', alert.border)}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-teal-100 rounded-full flex items-center justify-center text-teal-700 text-xl font-bold">
+            <div className="w-14 h-14 bg-teal-100 rounded-full flex items-center justify-center text-teal-700 text-xl font-bold shrink-0">
               {patient.name.charAt(0)}
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-800">{patient.name}</h2>
-              <p className="text-sm text-slate-500">
-                {patient.age} años · {patient.gender === 'F' ? 'Mujer' : 'Hombre'} · {patient.cancerType} Estadio {patient.stage}
-              </p>
-              <p className="text-sm text-slate-500 mt-0.5">{patient.diagnosis}</p>
-            </div>
+            {editing ? (
+              <div className="grid grid-cols-2 gap-2 flex-1">
+                <div className="col-span-2">
+                  <label className="text-[10px] text-slate-400 font-medium">Nombre</label>
+                  <input className={iCls} value={draft.name ?? ''} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 font-medium">Edad</label>
+                  <input type="number" className={iCls} value={draft.age ?? ''} onChange={e => setDraft(d => ({ ...d, age: parseInt(e.target.value) || 0 }))} />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 font-medium">Sexo</label>
+                  <select className={iCls} value={draft.gender} onChange={e => setDraft(d => ({ ...d, gender: e.target.value as 'M' | 'F' }))}>
+                    <option value="F">Mujer</option>
+                    <option value="M">Hombre</option>
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-[10px] text-slate-400 font-medium">Diagnóstico</label>
+                  <input className={iCls} value={draft.diagnosis ?? ''} onChange={e => setDraft(d => ({ ...d, diagnosis: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 font-medium">Tipo de cáncer</label>
+                  <select className={iCls} value={draft.cancerType ?? ''} onChange={e => setDraft(d => ({ ...d, cancerType: e.target.value }))}>
+                    <option value="—">— Sin especificar —</option>
+                    {CANCER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 font-medium">Estadio TNM</label>
+                  <input className={iCls} value={draft.stage ?? ''} onChange={e => setDraft(d => ({ ...d, stage: e.target.value }))} />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <h2 className="text-lg font-bold text-slate-800">{patient.name}</h2>
+                <p className="text-sm text-slate-500">
+                  {patient.age} años · {patient.gender === 'F' ? 'Mujer' : 'Hombre'} · {patient.cancerType} Estadio {patient.stage}
+                </p>
+                <p className="text-sm text-slate-500 mt-0.5">{patient.diagnosis}</p>
+              </div>
+            )}
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-end gap-2 shrink-0">
             <span className={cn('flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-full', alert.classes)}>
               {alert.icon} {alert.label}
             </span>
-            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-              Estado mental: {patient.mindState}
-            </span>
+            {editing ? (
+              <select className="text-xs border border-slate-200 rounded-full px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                value={draft.mindState} onChange={e => setDraft(d => ({ ...d, mindState: e.target.value as MindState }))}>
+                {MIND_STATES.map(ms => <option key={ms} value={ms}>{ms}</option>)}
+              </select>
+            ) : (
+              <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                Estado mental: {patient.mindState}
+              </span>
+            )}
+            {editing ? (
+              <div className="flex gap-1.5 mt-1">
+                <button onClick={() => setEditing(false)} className="flex items-center gap-1 text-xs text-slate-500 border border-slate-200 px-2.5 py-1 rounded-lg hover:bg-slate-50">
+                  <X size={12} /> Cancelar
+                </button>
+                <button onClick={saveEdit} className="flex items-center gap-1 text-xs text-white bg-teal-600 px-2.5 py-1 rounded-lg hover:bg-teal-700">
+                  <Save size={12} /> Guardar
+                </button>
+              </div>
+            ) : (
+              <button onClick={startEdit} className="flex items-center gap-1 text-xs text-slate-500 border border-slate-200 px-2.5 py-1 rounded-lg hover:bg-slate-50 mt-1">
+                <Pencil size={12} /> Editar
+              </button>
+            )}
           </div>
         </div>
 
         {/* Contact & clinical info */}
-        <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="flex items-center gap-2 text-xs text-slate-600">
-            <Mail size={13} className="text-slate-400" />
-            {patient.email}
+        {editing ? (
+          <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+              <label className="text-[10px] text-slate-400 font-medium block mb-0.5">Email</label>
+              <input type="email" className={iCls} value={draft.email ?? ''} onChange={e => setDraft(d => ({ ...d, email: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-400 font-medium block mb-0.5">Teléfono</label>
+              <input type="tel" className={iCls} value={draft.phone ?? ''} onChange={e => setDraft(d => ({ ...d, phone: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-400 font-medium block mb-0.5">Oncólogo/a</label>
+              <input className={iCls} value={draft.oncologist ?? ''} onChange={e => setDraft(d => ({ ...d, oncologist: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-400 font-medium block mb-0.5">Fecha diagnóstico</label>
+              <input type="date" className={iCls} value={draft.diagnosisDate ?? ''} onChange={e => setDraft(d => ({ ...d, diagnosisDate: e.target.value }))} />
+            </div>
+            <div className="col-span-2 lg:col-span-4">
+              <label className="text-[10px] text-slate-400 font-medium block mb-1">Fase del Journey</label>
+              <div className="flex flex-wrap gap-1.5">
+                {PHASES.map(phase => (
+                  <button key={phase} onClick={() => setDraft(d => ({ ...d, currentPhase: phase }))}
+                    className={cn('text-xs px-2.5 py-1 rounded-full border font-medium transition-colors',
+                      draft.currentPhase === phase ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-200 hover:border-teal-300'
+                    )}>
+                    {phase} · {PHASE_LABELS[phase]}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-600">
-            <Phone size={13} className="text-slate-400" />
-            {patient.phone}
+        ) : (
+          <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="flex items-center gap-2 text-xs text-slate-600">
+              <Mail size={13} className="text-slate-400" />
+              {patient.email || <span className="text-slate-300 italic">Sin email</span>}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-600">
+              <Phone size={13} className="text-slate-400" />
+              {patient.phone || <span className="text-slate-300 italic">Sin teléfono</span>}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-600">
+              <Stethoscope size={13} className="text-slate-400" />
+              {patient.oncologist}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-600">
+              <Calendar size={13} className="text-slate-400" />
+              Dx: {formatDate(patient.diagnosisDate)}
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-600">
-            <Stethoscope size={13} className="text-slate-400" />
-            {patient.oncologist}
-          </div>
-          <div className="flex items-center gap-2 text-xs text-slate-600">
-            <Calendar size={13} className="text-slate-400" />
-            Dx: {formatDate(patient.diagnosisDate)}
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Journey timeline */}

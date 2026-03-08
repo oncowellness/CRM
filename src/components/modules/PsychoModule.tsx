@@ -42,6 +42,12 @@ export function PsychoModule({ patient: propPatient }: Props) {
 
   if (!patient) return <div className="p-6 text-slate-400">Selecciona un paciente</div>
 
+  // Motor de reglas: Lógica movida antes del return para que no se renderice como texto
+  let contenido: string[] = []
+  if ((patient as any).fase === "F2") {
+    contenido = ["LB-01", "LB-02", "LB-05"]
+  }
+
   const totalScore = answers.reduce((s, a) => s + a, 0)
   const severity = computePHQ9Severity(totalScore)
   const latestPHQ9 = patient.phq9[patient.phq9.length - 1]
@@ -97,6 +103,20 @@ export function PsychoModule({ patient: propPatient }: Props) {
           <Plus size={14} /> Nuevo PHQ-9
         </button>
       </div>
+
+      {/* Visualización de recursos asignados por el motor de reglas */}
+      {contenido.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <h3 className="text-sm font-bold text-slate-700 mb-2">Recursos Asignados (Fase {(patient as any).fase})</h3>
+          <div className="flex gap-2">
+            {contenido.map(item => (
+              <span key={item} className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-md border border-slate-200">
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Auto-trigger alert */}
       {justSubmitted && latestPHQ9?.totalScore >= 10 && (

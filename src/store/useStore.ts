@@ -19,6 +19,7 @@ interface CRMState {
   sendContent: (patientId: string, contentCode: string) => void
   acknowledgeCrisis: (patientId: string, crisisId: string) => void
   addPatient: (patient: Omit<Patient, 'id' | 'handgrip' | 'sixMWT' | 'phq9' | 'gad7' | 'facitf' | 'eortc' | 'sessions' | 'contentItems' | 'crisisOrders' | 'clinicalNotes'>) => void
+  updatePatient: (id: string, fields: Partial<Pick<Patient, 'name' | 'age' | 'gender' | 'email' | 'phone' | 'diagnosis' | 'cancerType' | 'stage' | 'oncologist' | 'diagnosisDate' | 'currentPhase' | 'mindState'>>) => void
   getPatient: (id: string) => Patient | undefined
 }
 
@@ -195,6 +196,12 @@ export const useStore = create<CRMState>((set, get) => ({
       clinicalNotes: [],
     }
     set(state => ({ patients: [...state.patients, newPatient] }))
+  },
+
+  updatePatient: (id, fields) => {
+    set(state => ({
+      patients: state.patients.map(p => p.id === id ? { ...p, ...fields } : p),
+    }))
   },
 }))
 
