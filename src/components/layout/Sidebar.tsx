@@ -7,6 +7,7 @@ import {
   BarChart2,
   Package,
   Heart,
+  CalendarDays,
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import type { View } from '../../types'
@@ -20,6 +21,7 @@ const NAV_ITEMS: { label: string; icon: React.ReactNode; view: View }[] = [
   { label: 'Empoderamiento', icon: <BookOpen size={18} />, view: 'empowerment' },
   { label: 'Dashboard Clínico', icon: <BarChart2 size={18} />, view: 'clinical-dashboard' },
   { label: 'Bundles', icon: <Package size={18} />, view: 'bundles' },
+  { label: 'Calendario', icon: <CalendarDays size={18} />, view: 'calendar' },
 ]
 
 export function Sidebar() {

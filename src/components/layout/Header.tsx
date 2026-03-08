@@ -10,6 +10,7 @@ const VIEW_TITLES: Record<string, string> = {
   psycho: 'Módulo de Psico-oncología',
   empowerment: 'Empoderamiento del Paciente',
   'clinical-dashboard': 'Dashboard Clínico',
+  calendar: 'Calendario de Citas',
   bundles: 'Gestor de Bundles',
 }
 

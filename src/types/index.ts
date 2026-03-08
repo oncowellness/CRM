@@ -177,3 +177,4 @@ export type View =
   | 'empowerment'
   | 'clinical-dashboard'
   | 'bundles'
+  | 'calendar'

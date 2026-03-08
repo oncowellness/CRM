@@ -11,6 +11,7 @@ import { EmpowermentModule } from './components/modules/EmpowermentModule'
 import { ClinicalDashboard } from './components/dashboard/ClinicalDashboard'
 import { BundleManager } from './components/bundles/BundleManager'
 import { ClinicalReport } from './components/reports/ClinicalReport'
+import { CalendarView } from './components/calendar/CalendarView'
 
 function ViewContent() {
   const { view, patients, selectedPatientId } = useStore()
@@ -46,6 +47,8 @@ function ViewContent() {
       return <ClinicalDashboard />
     case 'bundles':
       return <BundleManager />
+    case 'calendar':
+      return <CalendarView />
     default:
       return <MainDashboard />
   }

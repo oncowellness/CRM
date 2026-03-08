@@ -1,35 +1,23 @@
 import { create } from 'zustand'
-import type { Patient, View, PHQ9Assessment, HandgripMeasurement, SixMWTMeasurement } from '../types'
+import type { Patient, View, PHQ9Assessment, HandgripMeasurement, SixMWTMeasurement, Session } from '../types'
 import { MOCK_PATIENTS } from '../data/patients'
 import { CONTENT_LIBRARY } from '../data/content'
 
 interface CRMState {
-  // Navigation
   view: View
   selectedPatientId: string | null
-
-  // Data
   patients: Patient[]
-
-  // Actions – Navigation
   setView: (view: View) => void
   selectPatient: (id: string | null) => void
-
-  // Actions – Clinical data
   addPHQ9: (patientId: string, assessment: PHQ9Assessment) => void
   addHandgrip: (patientId: string, measurement: HandgripMeasurement) => void
   addSixMWT: (patientId: string, measurement: SixMWTMeasurement) => void
-
-  // Actions – Bundles
+  addSession: (patientId: string, session: Omit<Session, 'id'>) => void
+  updateSessionStatus: (patientId: string, sessionId: string, status: Session['status']) => void
+  deleteSession: (patientId: string, sessionId: string) => void
   assignBundle: (patientId: string, bundleCode: string, programCodes: string[]) => void
-
-  // Actions – Content
   sendContent: (patientId: string, contentCode: string) => void
-
-  // Actions – Crisis
   acknowledgeCrisis: (patientId: string, crisisId: string) => void
-
-  // Selectors
   getPatient: (id: string) => Patient | undefined
 }
 
@@ -48,31 +36,25 @@ export const useStore = create<CRMState>((set, get) => ({
 
   setView: (view) => set({ view }),
   selectPatient: (id) => set({ selectedPatientId: id }),
-
   getPatient: (id) => get().patients.find(p => p.id === id),
 
   addPHQ9: (patientId, assessment) => {
     set(state => ({
       patients: state.patients.map(p => {
         if (p.id !== patientId) return p
-
         const newPhq9 = [...p.phq9, assessment]
         let alertStatus = p.alertStatus
         let crisisOrders = [...p.crisisOrders]
         let sessions = [...p.sessions]
-
-        // ── RULE: PHQ-9 >= 10 → Alerta Roja + PS-01 crisis order ───────────
         if (assessment.totalScore >= 10) {
           alertStatus = 'rojo'
-          const crisisId = `co-${Date.now()}`
           crisisOrders.push({
-            id: crisisId,
+            id: `co-${Date.now()}`,
             date: assessment.date,
             trigger: `PHQ-9 >= 10 (Puntuación: ${assessment.totalScore})`,
             program: 'PS-01',
             status: 'pendiente',
           })
-          // Auto-generate crisis session
           sessions.push({
             id: `s-crisis-${Date.now()}`,
             programCode: 'PS-01',
@@ -85,7 +67,6 @@ export const useStore = create<CRMState>((set, get) => ({
         } else if (assessment.totalScore < 5 && alertStatus !== 'rojo') {
           alertStatus = 'verde'
         }
-
         return { ...p, phq9: newPhq9, alertStatus, crisisOrders, sessions }
       }),
     }))
@@ -104,6 +85,40 @@ export const useStore = create<CRMState>((set, get) => ({
       patients: state.patients.map(p =>
         p.id === patientId ? { ...p, sixMWT: [...p.sixMWT, measurement] } : p
       ),
+    }))
+  },
+
+  addSession: (patientId, sessionData) => {
+    set(state => ({
+      patients: state.patients.map(p => {
+        if (p.id !== patientId) return p
+        const newSession: Session = {
+          ...sessionData,
+          id: `s-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        }
+        return { ...p, sessions: [...p.sessions, newSession] }
+      }),
+    }))
+  },
+
+  updateSessionStatus: (patientId, sessionId, status) => {
+    set(state => ({
+      patients: state.patients.map(p => {
+        if (p.id !== patientId) return p
+        return {
+          ...p,
+          sessions: p.sessions.map(s => s.id === sessionId ? { ...s, status } : s),
+        }
+      }),
+    }))
+  },
+
+  deleteSession: (patientId, sessionId) => {
+    set(state => ({
+      patients: state.patients.map(p => {
+        if (p.id !== patientId) return p
+        return { ...p, sessions: p.sessions.filter(s => s.id !== sessionId) }
+      }),
     }))
   },
 
@@ -164,5 +179,4 @@ export const useStore = create<CRMState>((set, get) => ({
   },
 }))
 
-// Helper to compute PHQ-9 severity (exported for component use)
 export { computePHQ9Severity }
