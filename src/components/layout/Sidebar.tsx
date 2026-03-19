@@ -12,6 +12,7 @@ import {
   Settings,
   Layers,
 } from 'lucide-react'
+import { useMemo } from 'react'
 import { useStore } from '../../store/useStore'
 import type { View, Patient } from '../../types'
 import { cn } from '../../lib/utils'
@@ -80,10 +81,10 @@ function PatientSidebarMenu({ patient, currentView, onNavigate }: PatientMenuPro
 export function Sidebar() {
   const { view, setView, patients, selectedPatientId } = useStore()
 
-  const redAlerts = patients.filter(p => p.alertStatus === 'rojo').length
-  const pendingCrisis = patients.reduce((acc, p) =>
+  const redAlerts = useMemo(() => patients.filter(p => p.alertStatus === 'rojo').length, [patients])
+  const pendingCrisis = useMemo(() => patients.reduce((acc, p) =>
     acc + p.crisisOrders.filter(c => c.status === 'pendiente').length, 0
-  )
+  ), [patients])
 
   const selectedPatient = patients.find(p => p.id === selectedPatientId)
   const showPatientMenu = selectedPatient && !['dashboard', 'calendar', 'patients', 'config-programs', 'config-bundles'].includes(view)

@@ -21,6 +21,14 @@ export type AlertStatus = 'verde' | 'amarillo' | 'rojo'
 // ─── Program Types ────────────────────────────────────────────────────────────
 export type ProgramType = 'FX' | 'PS' | 'NU' | 'EO' | 'TS'
 
+export const TYPE_COLORS: Record<ProgramType, string> = {
+  FX: 'bg-blue-100 text-blue-700',
+  PS: 'bg-purple-100 text-purple-700',
+  NU: 'bg-green-100 text-green-700',
+  EO: 'bg-pink-100 text-pink-700',
+  TS: 'bg-orange-100 text-orange-700',
+}
+
 export interface Program {
   code: string        // e.g. FX-01
   type: ProgramType

@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle, AlertCircle, Calendar, Phone, Mail, Stethos
 import { useStore } from '../../store/useStore'
 import { JourneyTimeline } from './JourneyTimeline'
 import { formatDate, cn } from '../../lib/utils'
-import { PHASE_LABELS, type AlertStatus, type Phase, type MindState, type Patient } from '../../types'
+import { PHASE_LABELS, TYPE_COLORS, type AlertStatus, type Phase, type MindState, type Patient } from '../../types'
 
 type PatientDraft = Pick<Patient, 'name' | 'age' | 'gender' | 'email' | 'phone' | 'diagnosis' | 'cancerType' | 'stage' | 'oncologist' | 'diagnosisDate' | 'currentPhase' | 'mindState'>
 
@@ -324,14 +324,7 @@ export function PatientDetail() {
                   <p className="text-xs font-semibold text-slate-700">{prog.code} – {prog.name}</p>
                   <p className="text-xs text-slate-400">{prog.description}</p>
                 </div>
-                <span className={cn(
-                  'text-xs px-2 py-0.5 rounded-full font-medium',
-                  prog.type === 'FX' && 'bg-blue-100 text-blue-700',
-                  prog.type === 'PS' && 'bg-purple-100 text-purple-700',
-                  prog.type === 'NU' && 'bg-green-100 text-green-700',
-                  prog.type === 'EO' && 'bg-pink-100 text-pink-700',
-                  prog.type === 'TS' && 'bg-orange-100 text-orange-700',
-                )}>
+                <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', TYPE_COLORS[prog.type])}>
                   {prog.type}
                 </span>
               </div>

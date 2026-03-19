@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine,
@@ -93,6 +93,42 @@ export function PhysioModule({ patient: propPatient }: Props) {
   const [balType, setBalType] = useState<'monopodal' | 'romberg'>('monopodal')
   const [balBaseline, setBalBaseline] = useState(false)
 
+  const radarData = useMemo(() => {
+    if (!patient) return []
+    const baselineHandgrip = patient.handgrip.find(h => h.isBaseline)
+    const latestHandgrip = patient.handgrip[patient.handgrip.length - 1]
+    const baselineSixMWT = patient.sixMWT.find(s => s.isBaseline)
+    const latestSixMWT = patient.sixMWT[patient.sixMWT.length - 1]
+    const latestSTS = patient.thirtySTS[patient.thirtySTS.length - 1]
+    const baselineSTS = patient.thirtySTS.find(s => s.isBaseline)
+    const latestTUG = patient.tug[patient.tug.length - 1]
+    const latestBalance = patient.balance[patient.balance.length - 1]
+    const baselineBalance = patient.balance.find(b => b.isBaseline)
+    const basalTUG = patient.tug.find(t => t.isBaseline)
+    return [
+      { domain: 'Fuerza', actual: Math.round(Math.min(100, latestHandgrip ? (latestHandgrip.dominantHand / 50) * 100 : 0)), basal: Math.round(Math.min(100, baselineHandgrip ? (baselineHandgrip.dominantHand / 50) * 100 : 0)) },
+      { domain: 'Resistencia', actual: Math.round(Math.min(100, latestSixMWT ? (latestSixMWT.distanceMeters / 600) * 100 : 0)), basal: Math.round(Math.min(100, baselineSixMWT ? (baselineSixMWT.distanceMeters / 600) * 100 : 0)) },
+      { domain: 'Agilidad', actual: Math.round(Math.max(0, latestTUG ? ((20 - latestTUG.seconds) / 15) * 100 : 0)), basal: Math.round(Math.max(0, basalTUG ? ((20 - basalTUG.seconds) / 15) * 100 : 0)) },
+      { domain: 'Fuerza MMII', actual: Math.round(Math.min(100, latestSTS ? (latestSTS.reps / 20) * 100 : 0)), basal: Math.round(Math.min(100, baselineSTS ? (baselineSTS.reps / 20) * 100 : 0)) },
+      { domain: 'Equilibrio', actual: Math.round(Math.min(100, latestBalance ? (latestBalance.seconds / 30) * 100 : 0)), basal: Math.round(Math.min(100, baselineBalance ? (baselineBalance.seconds / 30) * 100 : 0)) },
+    ]
+  }, [patient?.handgrip, patient?.sixMWT, patient?.tug, patient?.thirtySTS, patient?.balance])
+
+  const handgripData = useMemo(() => (patient?.handgrip ?? []).map(h => ({
+    date: formatDate(h.date),
+    Dominante: h.dominantHand,
+    'No Dominante': h.nonDominantHand,
+    isBaseline: h.isBaseline,
+  })), [patient?.handgrip])
+
+  const sixMWTData = useMemo(() => (patient?.sixMWT ?? []).map(s => ({
+    date: formatDate(s.date),
+    'Distancia (m)': s.distanceMeters,
+    'FC Pico': s.heartRatePeak ?? 0,
+    'Fatiga Borg': (s.fatigue ?? 0) * 10,
+    isBaseline: s.isBaseline,
+  })), [patient?.sixMWT])
+
   if (!patient) return <div className="p-6 text-slate-400">Selecciona un paciente</div>
 
   const baselineHandgrip = patient.handgrip.find(h => h.isBaseline)
@@ -107,43 +143,6 @@ export function PhysioModule({ patient: propPatient }: Props) {
   const baselineBalance = patient.balance.find(b => b.isBaseline)
 
   const normative30STS = get30STSNormative(patient.age, patient.gender)
-
-  // Radar data
-  const currentHandgrip = latestHandgrip ? Math.min(100, (latestHandgrip.dominantHand / 50) * 100) : 0
-  const basalHandgrip = baselineHandgrip ? Math.min(100, (baselineHandgrip.dominantHand / 50) * 100) : 0
-  const currentResistencia = latestSixMWT ? Math.min(100, (latestSixMWT.distanceMeters / 600) * 100) : 0
-  const basalResistencia = baselineSixMWT ? Math.min(100, (baselineSixMWT.distanceMeters / 600) * 100) : 0
-  const currentAgilidad = latestTUG ? Math.max(0, ((20 - latestTUG.seconds) / 15) * 100) : 0
-  const basalTUG = patient.tug.find(t => t.isBaseline)
-  const basalAgilidad = basalTUG ? Math.max(0, ((20 - basalTUG.seconds) / 15) * 100) : 0
-  const currentFuerzaMMII = latestSTS ? Math.min(100, (latestSTS.reps / 20) * 100) : 0
-  const basalFuerzaMMII = baselineSTS ? Math.min(100, (baselineSTS.reps / 20) * 100) : 0
-  const currentEquilibrio = latestBalance ? Math.min(100, (latestBalance.seconds / 30) * 100) : 0
-  const basalEquilibrio = baselineBalance ? Math.min(100, (baselineBalance.seconds / 30) * 100) : 0
-
-  const radarData = [
-    { domain: 'Fuerza', actual: Math.round(currentHandgrip), basal: Math.round(basalHandgrip) },
-    { domain: 'Resistencia', actual: Math.round(currentResistencia), basal: Math.round(basalResistencia) },
-    { domain: 'Agilidad', actual: Math.round(currentAgilidad), basal: Math.round(basalAgilidad) },
-    { domain: 'Fuerza MMII', actual: Math.round(currentFuerzaMMII), basal: Math.round(basalFuerzaMMII) },
-    { domain: 'Equilibrio', actual: Math.round(currentEquilibrio), basal: Math.round(basalEquilibrio) },
-  ]
-
-  // Chart data
-  const handgripData = patient.handgrip.map(h => ({
-    date: formatDate(h.date),
-    Dominante: h.dominantHand,
-    'No Dominante': h.nonDominantHand,
-    isBaseline: h.isBaseline,
-  }))
-
-  const sixMWTData = patient.sixMWT.map(s => ({
-    date: formatDate(s.date),
-    'Distancia (m)': s.distanceMeters,
-    'FC Pico': s.heartRatePeak ?? 0,
-    'Fatiga Borg': (s.fatigue ?? 0) * 10,
-    isBaseline: s.isBaseline,
-  }))
 
   function submitHandgrip() {
     if (!hgDom || !hgNonDom) return
@@ -173,7 +172,7 @@ export function PhysioModule({ patient: propPatient }: Props) {
     addThirtySTS(patient.id, {
       date: stsDate,
       reps: parseInt(stsReps),
-      isBaseline: stsBaseline || undefined,
+      isBaseline: stsBaseline ? true : undefined,
     })
     setShowSTSForm(false)
     setStsReps(''); setStsBaseline(false)
@@ -184,7 +183,7 @@ export function PhysioModule({ patient: propPatient }: Props) {
     addTUG(patient.id, {
       date: tugDate,
       seconds: parseFloat(tugSecs),
-      isBaseline: tugBaseline || undefined,
+      isBaseline: tugBaseline ? true : undefined,
     })
     setShowTUGForm(false)
     setTugSecs(''); setTugBaseline(false)
@@ -204,7 +203,7 @@ export function PhysioModule({ patient: propPatient }: Props) {
       date: balDate,
       seconds: parseFloat(balSecs),
       testType: balType,
-      isBaseline: balBaseline || undefined,
+      isBaseline: balBaseline ? true : undefined,
     })
     setShowBalanceForm(false)
     setBalSecs(''); setBalBaseline(false)

@@ -1,16 +1,8 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Plus, Pencil, Check, X, Layers } from 'lucide-react'
 import { useStore } from '../../store/useStore'
-import { cn } from '../../lib/utils'
-import type { Program, ProgramType } from '../../types'
-
-const TYPE_COLORS: Record<ProgramType, string> = {
-  FX: 'bg-blue-100 text-blue-700',
-  PS: 'bg-purple-100 text-purple-700',
-  NU: 'bg-green-100 text-green-700',
-  EO: 'bg-pink-100 text-pink-700',
-  TS: 'bg-orange-100 text-orange-700',
-}
+import { cn, inputCls as iCls } from '../../lib/utils'
+import { TYPE_COLORS, type Program, type ProgramType } from '../../types'
 
 const TYPE_LABELS: Record<ProgramType, string> = {
   FX: 'Fisioterapia',
@@ -21,8 +13,6 @@ const TYPE_LABELS: Record<ProgramType, string> = {
 }
 
 const PROGRAM_TYPES: ProgramType[] = ['FX', 'PS', 'NU', 'EO', 'TS']
-
-const iCls = 'w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400'
 
 const emptyProgram: Omit<Program, 'code'> & { code: string } = {
   code: '', type: 'FX', name: '', description: '', sessions: undefined, duration: undefined,
@@ -39,6 +29,10 @@ function nextCodeForType(programs: Program[], type: ProgramType): string {
 
 export function ConfigPrograms() {
   const { programs, addProgram, updateProgram } = useStore()
+  const programsByType = useMemo(
+    () => Object.fromEntries(PROGRAM_TYPES.map(t => [t, programs.filter(p => p.type === t)])) as Record<ProgramType, Program[]>,
+    [programs]
+  )
   const [editingCode, setEditingCode] = useState<string | null>(null)
   const [draft, setDraft] = useState<Program>({} as Program)
   const [showNew, setShowNew] = useState(false)
@@ -143,7 +137,7 @@ export function ConfigPrograms() {
 
       {/* Programs grouped by type */}
       {PROGRAM_TYPES.map(type => {
-        const items = programs.filter(p => p.type === type)
+        const items = programsByType[type]
         if (items.length === 0) return null
         return (
           <div key={type} className="bg-white rounded-xl border border-slate-200 overflow-hidden">

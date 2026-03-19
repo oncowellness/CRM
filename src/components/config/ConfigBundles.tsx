@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Plus, Pencil, Check, X, Package } from 'lucide-react'
 import { useStore } from '../../store/useStore'
-import { cn } from '../../lib/utils'
-import { PHASE_LABELS, type Phase, type Bundle, type ProgramType } from '../../types'
+import { cn, inputCls as iCls } from '../../lib/utils'
+import { PHASE_LABELS, TYPE_COLORS, type Phase, type Bundle, type ProgramType } from '../../types'
 
 const PHASES = Object.keys(PHASE_LABELS) as Phase[]
 
@@ -16,16 +16,6 @@ const PHASE_COLORS: Record<Phase, string> = {
   F7: 'bg-teal-100 text-teal-700',
   F8: 'bg-slate-100 text-slate-600',
 }
-
-const TYPE_COLORS: Record<ProgramType, string> = {
-  FX: 'bg-blue-100 text-blue-700',
-  PS: 'bg-purple-100 text-purple-700',
-  NU: 'bg-green-100 text-green-700',
-  EO: 'bg-pink-100 text-pink-700',
-  TS: 'bg-orange-100 text-orange-700',
-}
-
-const iCls = 'w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400'
 
 const emptyBundle: Bundle = { code: '', name: '', phase: 'F1', description: '', programs: [] }
 
@@ -59,6 +49,10 @@ function ProgramCheckboxList({
 
 export function ConfigBundles() {
   const { bundles, programs, addBundle, updateBundle } = useStore()
+  const programByCode = useMemo(
+    () => Object.fromEntries(programs.map(p => [p.code, p])),
+    [programs]
+  )
   const [editingCode, setEditingCode] = useState<string | null>(null)
   const [draft, setDraft] = useState<Bundle>({ ...emptyBundle })
   const [showNew, setShowNew] = useState(false)
@@ -210,7 +204,7 @@ export function ConfigBundles() {
                   <p className="text-xs text-slate-500 mb-3">{b.description}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {b.programs.map(code => {
-                      const prog = programs.find(p => p.code === code)
+                      const prog = programByCode[code]
                       return (
                         <span key={code}
                           className={cn('text-xs font-medium px-2 py-0.5 rounded-full',

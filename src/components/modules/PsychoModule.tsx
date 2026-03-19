@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
@@ -40,6 +40,15 @@ export function PsychoModule({ patient: propPatient }: Props) {
   const [answers, setAnswers] = useState<number[]>(new Array(9).fill(0))
   const [assessmentDate, setAssessmentDate] = useState(new Date().toISOString().split('T')[0])
   const [justSubmitted, setJustSubmitted] = useState(false)
+  const submitTimerRef = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => () => clearTimeout(submitTimerRef.current), [])
+
+  const chartData = useMemo(() => (patient?.phq9 ?? []).map(a => ({
+    date: formatDate(a.date),
+    'PHQ-9': a.totalScore,
+    severity: a.severity,
+  })), [patient?.phq9])
 
   if (!patient) return <div className="p-6 text-slate-400">Selecciona un paciente</div>
 
@@ -50,13 +59,6 @@ export function PsychoModule({ patient: propPatient }: Props) {
   const severity = computePHQ9Severity(totalScore)
   const latestPHQ9 = patient.phq9[patient.phq9.length - 1]
 
-  // Chart data: historical PHQ-9 evolution
-  const chartData = patient.phq9.map(a => ({
-    date: formatDate(a.date),
-    'PHQ-9': a.totalScore,
-    severity: a.severity,
-  }))
-
   function setAnswer(index: number, value: number) {
     setAnswers(prev => {
       const next = [...prev]
@@ -66,18 +68,16 @@ export function PsychoModule({ patient: propPatient }: Props) {
   }
 
   function submitAssessment() {
-    const score = answers.reduce((s, a) => s + a, 0)
-    const sev = computePHQ9Severity(score)
     addPHQ9(patient.id, {
       date: assessmentDate,
       answers: [...answers],
-      totalScore: score,
-      severity: sev,
+      totalScore,
+      severity,
     })
     setShowForm(false)
     setAnswers(new Array(9).fill(0))
     setJustSubmitted(true)
-    setTimeout(() => setJustSubmitted(false), 4000)
+    submitTimerRef.current = setTimeout(() => setJustSubmitted(false), 4000)
   }
 
   const pendingCrisis = patient.crisisOrders.filter(c => c.status === 'pendiente')
