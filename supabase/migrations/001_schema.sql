@@ -7,7 +7,7 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ── Clínicas (multi-tenancy) ──────────────────────────────────────────────────
-CREATE TABLE clinics (
+CREATE TABLE IF NOT EXISTS clinics (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name        TEXT NOT NULL,
   slug        TEXT NOT NULL UNIQUE,
@@ -15,7 +15,7 @@ CREATE TABLE clinics (
 );
 
 -- ── Perfiles de usuario ───────────────────────────────────────────────────────
-CREATE TABLE user_profiles (
+CREATE TABLE IF NOT EXISTS user_profiles (
   id          UUID PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
   clinic_id   UUID REFERENCES clinics ON DELETE CASCADE,
   full_name   TEXT,
@@ -25,7 +25,7 @@ CREATE TABLE user_profiles (
 );
 
 -- ── Programas ─────────────────────────────────────────────────────────────────
-CREATE TABLE programs (
+CREATE TABLE IF NOT EXISTS programs (
   code        TEXT NOT NULL,
   clinic_id   UUID REFERENCES clinics ON DELETE CASCADE,
   type        TEXT NOT NULL CHECK (type IN ('FX','PS','NU','EO','TS')),
@@ -38,7 +38,7 @@ CREATE TABLE programs (
 );
 
 -- ── Bundles / Packs ───────────────────────────────────────────────────────────
-CREATE TABLE bundles (
+CREATE TABLE IF NOT EXISTS bundles (
   code        TEXT NOT NULL,
   clinic_id   UUID REFERENCES clinics ON DELETE CASCADE,
   name        TEXT NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE bundles (
 );
 
 -- ── Pacientes ─────────────────────────────────────────────────────────────────
-CREATE TABLE patients (
+CREATE TABLE IF NOT EXISTS patients (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   clinic_id           UUID NOT NULL REFERENCES clinics ON DELETE CASCADE,
   -- Datos personales
@@ -79,8 +79,8 @@ CREATE TABLE patients (
   updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX patients_clinic_id_idx ON patients (clinic_id);
-CREATE INDEX patients_alert_status_idx ON patients (clinic_id, alert_status);
+CREATE INDEX IF NOT EXISTS patients_clinic_id_idx ON patients (clinic_id);
+CREATE INDEX IF NOT EXISTS patients_alert_status_idx ON patients (clinic_id, alert_status);
 
 -- ── Trigger: updated_at automático ───────────────────────────────────────────
 CREATE OR REPLACE FUNCTION update_updated_at()
@@ -88,12 +88,13 @@ RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
 $$;
 
+DROP TRIGGER IF EXISTS patients_updated_at ON patients;
 CREATE TRIGGER patients_updated_at
   BEFORE UPDATE ON patients
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- ── Mediciones funcionales ────────────────────────────────────────────────────
-CREATE TABLE handgrip_measurements (
+CREATE TABLE IF NOT EXISTS handgrip_measurements (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id        UUID NOT NULL REFERENCES patients ON DELETE CASCADE,
   date              DATE NOT NULL,
@@ -102,9 +103,9 @@ CREATE TABLE handgrip_measurements (
   is_baseline       BOOLEAN,
   created_at        TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX handgrip_patient_idx ON handgrip_measurements (patient_id, date);
+CREATE INDEX IF NOT EXISTS handgrip_patient_idx ON handgrip_measurements (patient_id, date);
 
-CREATE TABLE six_mwt_measurements (
+CREATE TABLE IF NOT EXISTS six_mwt_measurements (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id      UUID NOT NULL REFERENCES patients ON DELETE CASCADE,
   date            DATE NOT NULL,
@@ -114,9 +115,9 @@ CREATE TABLE six_mwt_measurements (
   is_baseline     BOOLEAN,
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX six_mwt_patient_idx ON six_mwt_measurements (patient_id, date);
+CREATE INDEX IF NOT EXISTS six_mwt_patient_idx ON six_mwt_measurements (patient_id, date);
 
-CREATE TABLE thirty_sts_measurements (
+CREATE TABLE IF NOT EXISTS thirty_sts_measurements (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id  UUID NOT NULL REFERENCES patients ON DELETE CASCADE,
   date        DATE NOT NULL,
@@ -124,9 +125,9 @@ CREATE TABLE thirty_sts_measurements (
   is_baseline BOOLEAN,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX thirty_sts_patient_idx ON thirty_sts_measurements (patient_id, date);
+CREATE INDEX IF NOT EXISTS thirty_sts_patient_idx ON thirty_sts_measurements (patient_id, date);
 
-CREATE TABLE tug_measurements (
+CREATE TABLE IF NOT EXISTS tug_measurements (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id  UUID NOT NULL REFERENCES patients ON DELETE CASCADE,
   date        DATE NOT NULL,
@@ -134,18 +135,18 @@ CREATE TABLE tug_measurements (
   is_baseline BOOLEAN,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX tug_patient_idx ON tug_measurements (patient_id, date);
+CREATE INDEX IF NOT EXISTS tug_patient_idx ON tug_measurements (patient_id, date);
 
-CREATE TABLE transverso_measurements (
+CREATE TABLE IF NOT EXISTS transverso_measurements (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id  UUID NOT NULL REFERENCES patients ON DELETE CASCADE,
   date        DATE NOT NULL,
   score       SMALLINT NOT NULL CHECK (score BETWEEN 0 AND 3),
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX transverso_patient_idx ON transverso_measurements (patient_id, date);
+CREATE INDEX IF NOT EXISTS transverso_patient_idx ON transverso_measurements (patient_id, date);
 
-CREATE TABLE balance_measurements (
+CREATE TABLE IF NOT EXISTS balance_measurements (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id  UUID NOT NULL REFERENCES patients ON DELETE CASCADE,
   date        DATE NOT NULL,
@@ -154,10 +155,10 @@ CREATE TABLE balance_measurements (
   is_baseline BOOLEAN,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX balance_patient_idx ON balance_measurements (patient_id, date);
+CREATE INDEX IF NOT EXISTS balance_patient_idx ON balance_measurements (patient_id, date);
 
 -- ── Evaluaciones psicológicas ─────────────────────────────────────────────────
-CREATE TABLE phq9_assessments (
+CREATE TABLE IF NOT EXISTS phq9_assessments (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id  UUID NOT NULL REFERENCES patients ON DELETE CASCADE,
   date        DATE NOT NULL,
@@ -166,9 +167,9 @@ CREATE TABLE phq9_assessments (
   severity    TEXT NOT NULL CHECK (severity IN ('minimal','mild','moderate','moderately_severe','severe')),
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX phq9_patient_idx ON phq9_assessments (patient_id, date);
+CREATE INDEX IF NOT EXISTS phq9_patient_idx ON phq9_assessments (patient_id, date);
 
-CREATE TABLE gad7_assessments (
+CREATE TABLE IF NOT EXISTS gad7_assessments (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id  UUID NOT NULL REFERENCES patients ON DELETE CASCADE,
   date        DATE NOT NULL,
@@ -178,7 +179,7 @@ CREATE TABLE gad7_assessments (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE facitf_assessments (
+CREATE TABLE IF NOT EXISTS facitf_assessments (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id  UUID NOT NULL REFERENCES patients ON DELETE CASCADE,
   date        DATE NOT NULL,
@@ -187,7 +188,7 @@ CREATE TABLE facitf_assessments (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE eortc_assessments (
+CREATE TABLE IF NOT EXISTS eortc_assessments (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id          UUID NOT NULL REFERENCES patients ON DELETE CASCADE,
   date                DATE NOT NULL,
@@ -204,7 +205,7 @@ CREATE TABLE eortc_assessments (
 );
 
 -- ── Sesiones / Citas ──────────────────────────────────────────────────────────
-CREATE TABLE sessions (
+CREATE TABLE IF NOT EXISTS sessions (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id   UUID NOT NULL REFERENCES patients ON DELETE CASCADE,
   program_code TEXT NOT NULL,
@@ -215,11 +216,11 @@ CREATE TABLE sessions (
   therapist    TEXT,
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX sessions_patient_idx ON sessions (patient_id, date);
-CREATE INDEX sessions_date_idx ON sessions (patient_id, date, status);
+CREATE INDEX IF NOT EXISTS sessions_patient_idx ON sessions (patient_id, date);
+CREATE INDEX IF NOT EXISTS sessions_date_idx ON sessions (patient_id, date, status);
 
 -- ── Órdenes de crisis ─────────────────────────────────────────────────────────
-CREATE TABLE crisis_orders (
+CREATE TABLE IF NOT EXISTS crisis_orders (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id  UUID NOT NULL REFERENCES patients ON DELETE CASCADE,
   date        DATE NOT NULL,
@@ -230,10 +231,10 @@ CREATE TABLE crisis_orders (
   notes       TEXT,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX crisis_orders_patient_idx ON crisis_orders (patient_id, status);
+CREATE INDEX IF NOT EXISTS crisis_orders_patient_idx ON crisis_orders (patient_id, status);
 
 -- ── Notas clínicas ────────────────────────────────────────────────────────────
-CREATE TABLE clinical_notes (
+CREATE TABLE IF NOT EXISTS clinical_notes (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id UUID NOT NULL REFERENCES patients ON DELETE CASCADE,
   date       DATE NOT NULL,
@@ -242,10 +243,10 @@ CREATE TABLE clinical_notes (
   type       TEXT NOT NULL CHECK (type IN ('evolucion','interconsulta','incidencia')),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX clinical_notes_patient_idx ON clinical_notes (patient_id, date DESC);
+CREATE INDEX IF NOT EXISTS clinical_notes_patient_idx ON clinical_notes (patient_id, date DESC);
 
 -- ── Contenido enviado al paciente ─────────────────────────────────────────────
-CREATE TABLE patient_content (
+CREATE TABLE IF NOT EXISTS patient_content (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id  UUID NOT NULL REFERENCES patients ON DELETE CASCADE,
   code        TEXT NOT NULL,
@@ -258,7 +259,7 @@ CREATE TABLE patient_content (
 );
 
 -- ── Audit log ─────────────────────────────────────────────────────────────────
-CREATE TABLE audit_log (
+CREATE TABLE IF NOT EXISTS audit_log (
   id          BIGSERIAL PRIMARY KEY,
   user_id     UUID REFERENCES auth.users,
   clinic_id   UUID REFERENCES clinics,
@@ -269,4 +270,4 @@ CREATE TABLE audit_log (
   new_data    JSONB,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX audit_log_clinic_idx ON audit_log (clinic_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS audit_log_clinic_idx ON audit_log (clinic_id, created_at DESC);
